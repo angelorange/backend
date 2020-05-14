@@ -1,7 +1,7 @@
 defmodule BackendWeb.UserControllerTest do
   use BackendWeb.ConnCase
 
-  alias Backend.Auth
+  # alias Backend.Auth
   alias Backend.Auth.User
 
   import Backend.Factory
@@ -41,7 +41,8 @@ defmodule BackendWeb.UserControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = post(conn, Routes.user_path(conn, :create), user: @invalid_attrs)
+      params = %{}
+      conn = post(conn, Routes.user_path(conn, :create), user: params)
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
@@ -81,6 +82,26 @@ defmodule BackendWeb.UserControllerTest do
       assert_error_sent 404, fn ->
         get(conn, Routes.user_path(conn, :show, user))
       end
+    end
+  end
+
+  describe "sign in user" do
+    test "renders user when auth ok", %{conn: conn} do
+      user = insert(:user)
+
+      conn =
+        post(conn, Routes.user_path(conn, :sign_in, %{email: user.email, password: user.password}))
+
+      assert %{"user" => subject} = json_response(conn, 200)["data"]
+      assert subject["email"] == user.email
+      assert subject["id"] == user.id
+    end
+
+    test "renders error when status 401", %{conn: conn} do
+      conn =
+        post(conn, Routes.user_path(conn, :sign_in, %{email: nil, password: nil}))
+
+      assert %{"detail" => "Unauthorized"} = json_response(conn, 401)["errors"]
     end
   end
 

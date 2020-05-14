@@ -12,10 +12,11 @@ defmodule Backend.Auth.User do
   end
 
   @doc false
-  @required ~w(email is_active password_hash password)a
+  @optional ~w(is_active password_hash)a
+  @required ~w(email password)a
   def changeset(user, attrs) do
     user
-    |> cast(attrs, @required)
+    |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
     |> unique_constraint(:email)
     |> put_password_hash

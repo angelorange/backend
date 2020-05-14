@@ -62,4 +62,20 @@ defmodule Backend.AuthTest do
       assert_raise(Ecto.NoResultsError, fn -> Auth.get_user!(user.id) end)
     end
   end
+
+  describe "autentification" do
+    test "authentificate_user/2 returns :ok " do
+      user = insert(:user)
+
+      assert {:ok, %Auth.User{} = subject} = Auth.authentificate_user(user.email, user.password)
+      assert subject.email == user.email
+      assert subject.id == user.id
+    end
+
+    test "authentificate_user/2 returns :error" do
+      user = insert(:user)
+
+      assert {:error, _} = Auth.authentificate_user("#{user.email}br", "wilsonjr")
+    end
+  end
 end

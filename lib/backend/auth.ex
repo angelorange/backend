@@ -101,4 +101,22 @@ defmodule Backend.Auth do
   def change_user(%User{} = user, attrs \\ %{}) do
     User.changeset(user, attrs)
   end
+
+  def authentificate_user(email, password) do
+    from(u in User, where: u.email == ^email)
+    |> Repo.one()
+    |> verify_password(password)
+  end
+
+  def verify_password(nil, _) do
+    Bcrypt.no_user_verify()
+    {:error, "Wrong email or password"}
+  end
+
+  def verify_password(user, password) do
+    case Bcrypt.verify_pass(password, user.password_hash) do
+      true -> {:ok, user}
+      _ -> {:error, "Wrong email or password"}
+    end
+  end
 end
