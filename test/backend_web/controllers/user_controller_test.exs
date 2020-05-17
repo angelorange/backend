@@ -3,6 +3,7 @@ defmodule BackendWeb.UserControllerTest do
 
   # alias Backend.Auth
   alias Backend.Auth.User
+  # alias Plug.Test
 
   import Backend.Factory
 
@@ -10,12 +11,24 @@ defmodule BackendWeb.UserControllerTest do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
+  def login(conn, %{email: email}) do
+    post(
+      conn,
+      Routes.user_path(conn, :sign_in, %{
+        email: email,
+        password: "123456"
+      })
+    )
+  end
+
   describe "index" do
     test "lists all users", %{conn: conn} do
       user = insert(:user)
       insert(:user)
 
-      conn = get(conn, Routes.user_path(conn, :index))
+      conn =
+        login(conn, user)
+        |> get(Routes.user_path(conn, :index))
 
       assert [ subject | _rest ] = json_response(conn, 200)["data"]
       assert subject == %{"email" => user.email , "id" => user.id , "is_active" => user.is_active }
@@ -53,7 +66,9 @@ defmodule BackendWeb.UserControllerTest do
     test "renders user when data is valid", %{conn: conn, user: %User{id: id} = user} do
       params = params_for(:user, %{email: "aa@gmail.com"})
 
-      conn = put(conn, Routes.user_path(conn, :update, user), user: params)
+      conn =
+        login(conn, user)
+        |> put(Routes.user_path(conn, :update, user), user: params)
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
       conn = get(conn, Routes.user_path(conn, :show, id))
@@ -67,7 +82,10 @@ defmodule BackendWeb.UserControllerTest do
 
     test "renders errors when data is invalid", %{conn: conn, user: user} do
       params = %{}
-      conn = put(conn, Routes.user_path(conn, :update, user), user: params)
+
+      conn =
+        login(conn, user)
+        |> put( Routes.user_path(conn, :update, user), user: params)
       assert json_response(conn, 422)["errors"] == %{"detail" => "Unprocessable Entity"}
     end
   end
@@ -76,7 +94,9 @@ defmodule BackendWeb.UserControllerTest do
     setup [:create_user]
 
     test "deletes chosen user", %{conn: conn, user: user} do
-      conn = delete(conn, Routes.user_path(conn, :delete, user))
+      conn =
+        login(conn, user)
+        |> delete(Routes.user_path(conn, :delete, user))
       assert response(conn, 204)
 
       assert_error_sent 404, fn ->
@@ -109,4 +129,6 @@ defmodule BackendWeb.UserControllerTest do
     user = insert(:user)
     %{user: user}
   end
+
+
 end

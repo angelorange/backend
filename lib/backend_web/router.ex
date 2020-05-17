@@ -3,13 +3,24 @@ defmodule BackendWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug :fetch_session
+  end
+
+  pipeline :api_auth do
+    plug :ensure_auth
   end
 
   scope "/api", BackendWeb do
     pipe_through :api
 
-    resources "/users", UserController, except: [:new, :edit]
     post "/users/sign_in", UserController, :sign_in
+    resources "/users", UserController, only: [:create, :show]
+  end
+
+  scope  "/api", BackendWeb do
+    pipe_through [:api, :api_auth]
+
+    resources "/users", UserController, except: [:new, :edit, :create, :show]
   end
 
   # Enables LiveDashboard only for development
@@ -25,6 +36,21 @@ defmodule BackendWeb.Router do
     scope "/" do
       pipe_through [:fetch_session, :protect_from_forgery]
       live_dashboard "/dashboard", metrics: BackendWeb.Telemetry
+    end
+  end
+
+  defp ensure_auth(conn, _opts) do
+    current_user_id = get_session(conn, :current_user_id)
+
+    case is_integer(current_user_id) do
+      true ->
+        conn
+      false ->
+        conn
+        |> put_status(:unauthorized)
+        |> put_view(BackendWeb.ErrorView)
+        |> render("401.json", message: "Unauthorized user")
+        |> halt()
     end
   end
 end
